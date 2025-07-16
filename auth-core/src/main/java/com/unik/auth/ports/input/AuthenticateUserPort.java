@@ -14,4 +14,6 @@ public interface AuthenticateUserPort<U extends BaseUser<?>, R> {
 
     AuthenticationResult<U> authenticateWithEmail(String email, String password);
 
+    Boolean isAuthenticated(String accessToken);
+
 }

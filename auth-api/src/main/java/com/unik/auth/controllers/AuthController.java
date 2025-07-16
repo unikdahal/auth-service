@@ -17,10 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "Authentication", description = "Endpoints for user registration and login.")
 @RestController
@@ -62,5 +59,19 @@ public class AuthController<U extends BaseUser<R>, R> {
             return ResponseEntity.status(401).build();
         }
         return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = "Auth check", description = "Checks if the user is authenticated based on the accessToken from headers.", responses = {@ApiResponse(responseCode = "200", description = "User is authenticated"), @ApiResponse(responseCode = "401", description = "User is not authenticated")})
+    @PostMapping("${api.auth.check-path:/check}")
+    public ResponseEntity<Boolean> checkAuth(@RequestHeader("Authorization") String authorizationHeader) {
+        String accessToken = authorizationHeader.replace("Bearer ", "");
+        if (accessToken.isBlank()) {
+            return ResponseEntity.status(401).body(false);
+        }
+        boolean isAuthenticated = authenticateUserUseCase.isAuthenticated(accessToken);
+        if (!isAuthenticated) {
+            return ResponseEntity.status(401).body(false);
+        }
+        return ResponseEntity.ok(true);
     }
 }

@@ -254,13 +254,12 @@ public class AuthenticationClient {
     }
 
     public boolean validateToken(String token) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(token);
+        HttpEntity<String> entity = new HttpEntity<>(headers);
         try {
-            restTemplate.postForEntity(
-                authServiceUrl + "/api/auth/check-auth",
-                token,
-                Void.class
-            );
-            return true;
+            ResponseEntity response= restTemplate.exchange(authServiceUrl + "/api/auth/check-auth", HttpMethod.POST, entity, Void.class);
+            return response.getStatusEECode() == HttpStatus.OK;
         } catch (HttpClientErrorException e) {
             if (e.getStatusCode() == HttpStatus.UNAUTHORIZED) {
                 return false;

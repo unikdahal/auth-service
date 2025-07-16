@@ -68,6 +68,12 @@ public class GenericAuthenticateUserUseCase<U extends BaseUser<R>, R> implements
         return authService.authenticate(credentials);
     }
 
+    @Override
+    public Boolean isAuthenticated(String accessToken) {
+        log.debug("Checking authentication status for access token: {}", accessToken);
+        return authService.isAuthenticated(accessToken);
+    }
+
     /** TODO: Implement other authentication methods as needed
      *
      * Authenticates a user with a one-time password or verification code.
