@@ -5,6 +5,7 @@ import com.unik.auth.domain.exceptions.*;
 import com.unik.auth.domain.valueobjects.Email;
 import com.unik.auth.domain.valueobjects.Password;
 import com.unik.auth.domain.valueobjects.UserId;
+import com.unik.auth.ports.input.dto.response.LogoutResult;
 import com.unik.auth.ports.output.*;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
@@ -160,10 +161,6 @@ public class GenericAuthenticationService<U extends BaseUser<R>, R> {
         try {
             log.info("Refreshing access token");
 
-            if (tokenService.isRefreshTokenRevoked(refreshToken)) {
-                throw new InvalidTokenException("Refresh token has been revoked");
-            }
-
             if (!tokenService.isTokenValidAndNotExpired(refreshToken)) {
                 throw new InvalidTokenException("Refresh token is invalid or expired");
             }
@@ -188,18 +185,13 @@ public class GenericAuthenticationService<U extends BaseUser<R>, R> {
      */
     public LogoutResult logout(String refreshToken) {
         try {
-            log.info("Logging out user");
-
-            Optional<String> userIdOpt = tokenService.extractUserId(refreshToken);
-
-            if (userIdOpt.isPresent()) {
-                tokenService.revokeAllTokensForUser(userIdOpt.get());
-                log.info("User logged out successfully");
-                return LogoutResult.success("User logged out successfully");
+            log.info("Logging out user with refresh token: {}",
+                    refreshToken);
+            if (!tokenService.isTokenValidAndNotExpired(refreshToken)) {
+                throw new InvalidTokenException("Refresh token is invalid or expired");
             }
-
-            return LogoutResult.failure("Invalid refresh token");
-
+            //send a success response to a client, and the client will remove the jwt from local storage
+            return LogoutResult.success("User logged out successfully");
         } catch (Exception e) {
             log.error("Logout failed", e);
             return LogoutResult.failure(e.getMessage());
@@ -215,8 +207,8 @@ public class GenericAuthenticationService<U extends BaseUser<R>, R> {
 
             U user = findUserById(userId);
 
-            // Verify current password
-            if (!passwordService.matches(currentPassword, user.getPassword())) {
+            // Verify the current password
+            if (passwordService.matches(currentPassword, user.getPassword())) {
                 throw new InvalidCredentialsException("Current password is incorrect");
             }
 
@@ -228,9 +220,6 @@ public class GenericAuthenticationService<U extends BaseUser<R>, R> {
             // Update user password
             U updatedUser = userFactory.updatePassword(user, encodedNewPasswordVO);
             userRepository.update(updatedUser);
-
-            // Revoke all existing tokens
-            tokenService.revokeAllTokensForUser(userId);
 
             // Send password change notification
             notificationService.sendPasswordChangeNotification(updatedUser);
@@ -266,6 +255,14 @@ public class GenericAuthenticationService<U extends BaseUser<R>, R> {
         }
     }
 
+    public boolean isAuthenticated(String token) {
+        try {
+            return tokenService.isTokenValidAndNotExpired(token);
+        } catch (Exception e) {
+            log.error("Failed to check if token is authenticated", e);
+            return false;
+        }
+    }
     /**
      * Gets user information by ID.
      */

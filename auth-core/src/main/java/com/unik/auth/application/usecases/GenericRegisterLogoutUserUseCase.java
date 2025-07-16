@@ -1,19 +1,24 @@
 package com.unik.auth.application.usecases;
 
+import com.unik.auth.application.services.AuthenticationResult;
 import com.unik.auth.application.services.GenericAuthenticationService;
 import com.unik.auth.application.services.RegistrationRequest;
-import com.unik.auth.application.services.AuthenticationResult;
 import com.unik.auth.domain.entities.BaseUser;
-import com.unik.auth.ports.input.RegisterUserPort;
+import com.unik.auth.ports.input.RegisterLogoutUserPort;
+import com.unik.auth.ports.input.dto.request.RegisterUserRequest;
+import com.unik.auth.ports.input.dto.response.LogoutResult;
+import com.unik.auth.ports.input.dto.response.RegisterUserResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 
 /**
  * Generic use case for user registration.
  */
 @Slf4j
 @RequiredArgsConstructor
-public class GenericRegisterUserUseCase<U extends BaseUser<R>, R> implements RegisterUserPort<U, R> {
+@Component
+public class GenericRegisterLogoutUserUseCase<U extends BaseUser<R>, R> implements RegisterLogoutUserPort<U, R> {
 
     private final GenericAuthenticationService<U, R> authService;
 
@@ -46,6 +51,23 @@ public class GenericRegisterUserUseCase<U extends BaseUser<R>, R> implements Reg
         } catch (Exception e) {
             log.error("Registration failed for user: {}", request.getUsername(), e);
             return RegisterUserResult.failure("Registration failed: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public LogoutResult logoutUser(String request) {
+        try {
+            log.info("Processing logout request for token: {}", request);
+            LogoutResult result = authService.logout(request);
+
+            if (result.isSuccess()) {
+                return LogoutResult.success(result.getMessage());
+            } else {
+                return LogoutResult.failure(result.getMessage());
+            }
+        } catch (Exception e) {
+            log.error("Logout failed for token: {}", request, e);
+            return LogoutResult.failure("Logout failed: " + e.getMessage());
         }
     }
 }

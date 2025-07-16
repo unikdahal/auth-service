@@ -1,4 +1,4 @@
-package com.unik.auth.application.services;
+package com.unik.auth.ports.input.dto.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

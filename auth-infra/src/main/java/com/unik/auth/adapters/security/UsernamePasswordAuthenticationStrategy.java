@@ -58,7 +58,7 @@ public class UsernamePasswordAuthenticationStrategy<R> implements Authentication
         GenericUser<R> user = userOpt.get();
 
         // Verify password
-        if (!passwordService.matches(credentials.getPassword(), user.getPassword())) {
+        if (passwordService.matches(credentials.getPassword(), user.getPassword())) {
             log.debug("Password does not match for user: {}", user.getUsername());
             return Optional.empty();
         }

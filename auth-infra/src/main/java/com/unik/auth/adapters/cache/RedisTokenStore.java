@@ -26,6 +26,6 @@ public class RedisTokenStore {
     }
 
     public boolean exists(String key) {
-        return Boolean.TRUE.equals(redisTemplate.hasKey(key));
+        return redisTemplate.hasKey(key);
     }
 }

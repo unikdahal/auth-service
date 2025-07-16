@@ -72,18 +72,227 @@ See `application.yml` for a complete list of configuration options.
 ### API Documentation
 - After running, visit: `http://localhost:8080/swagger-ui.html` for interactive OpenAPI docs.
 
-## Usage & Extension
-- **Add new authentication strategies:** Implement `AuthenticationStrategyPort` and register in the service.
-- **Add new notification channels:** Implement `NotificationServicePort`.
-- **Customize user model:** Extend `BaseUser` and update factory/repository ports.
-- **Integrate with your website:** Use the REST API or embed the core module as a library.
-- **Configure for your needs:** Customize all paths, endpoints, and settings via properties.
+## API Reference
+
+The authentication service provides the following RESTful endpoints:
+
+### Authentication Endpoints
+
+#### Register User
+- **URL:** `/api/auth/register`
+- **Method:** `POST`
+- **Description:** Registers a new user and returns access/refresh tokens
+- **Request Body:**
+  ```json
+  {
+    "email": "user@example.com",
+    "username": "username",
+    "password": "SecurePassword123!",
+    "roles": ["USER"]
+  }
+  ```
+- **Success Response:** (200 OK)
+  ```json
+  {
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "tokenType": "Bearer"
+  }
+  ```
+- **Error Response:** (400 Bad Request)
+  ```json
+  {
+    "accessToken": null,
+    "refreshToken": null,
+    "tokenType": "error: Email already exists"
+  }
+  ```
+
+#### User Login
+- **URL:** `/api/auth/login`
+- **Method:** `POST`
+- **Description:** Authenticates a user and returns access/refresh tokens
+- **Request Body:**
+  ```json
+  {
+    "usernameOrEmail": "user@example.com",
+    "password": "SecurePassword123!"
+  }
+  ```
+- **Success Response:** (200 OK)
+  ```json
+  {
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "tokenType": "Bearer"
+  }
+  ```
+- **Error Response:** (401 Unauthorized)
+  ```json
+  {
+    "accessToken": null,
+    "refreshToken": null,
+    "tokenType": "error: Invalid credentials"
+  }
+  ```
+
+#### Logout
+- **URL:** `/api/auth/logout`
+- **Method:** `POST`
+- **Description:** Logs out a user by invalidating their refresh token
+- **Request Body:**
+  ```json
+  {
+    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  }
+  ```
+- **Success Response:** (200 OK)
+- **Error Response:** (401 Unauthorized)
+
+#### Refresh Token
+- **URL:** `/api/auth/refresh`
+- **Method:** `POST`
+- **Description:** Obtains a new access token using a valid refresh token
+- **Request Body:**
+  ```json
+  {
+    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  }
+  ```
+- **Success Response:** (200 OK)
+  ```json
+  {
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "refreshToken": null,
+    "tokenType": "Bearer"
+  }
+  ```
+- **Error Response:** (401 Unauthorized)
+  ```json
+  {
+    "accessToken": null,
+    "refreshToken": null,
+    "tokenType": "error: Invalid or expired refresh token"
+  }
+  ```
+
+#### Check Authentication
+- **URL:** `/api/auth/check-auth`
+- **Method:** `POST`
+- **Description:** Validates if an access token is valid and not expired
+- **Request Body:**
+  ```
+  eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+  ```
+- **Success Response:** (200 OK)
+- **Error Response:** (401 Unauthorized)
+
+### Implementation in Client Applications
+
+#### Frontend (JavaScript)
+
+```javascript
+// Register a new user
+async function registerUser(userData) {
+  const response = await fetch('/api/auth/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(userData)
+  });
+  return await response.json();
+}
+
+// Login
+async function login(credentials) {
+  const response = await fetch('/api/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(credentials)
+  });
+  return await response.json();
+}
+
+// Making authenticated requests
+function makeAuthenticatedRequest(url, accessToken) {
+  return fetch(url, {
+    headers: { 'Authorization': `Bearer ${accessToken}` }
+  });
+}
+
+// Refresh token when access token expires
+async function refreshToken(refreshToken) {
+  const response = await fetch('/api/auth/refresh', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refreshToken })
+  });
+  return await response.json();
+}
+
+// Logout
+function logout(refreshToken) {
+  return fetch('/api/auth/logout', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refreshToken })
+  });
+}
+```
+
+#### Other Services (Java)
+
+```java
+@Service
+public class AuthenticationClient {
+    private final RestTemplate restTemplate;
+    private final String authServiceUrl;
+
+    public AuthenticationClient(RestTemplate restTemplate, 
+                              @Value("${auth.service.url}") String authServiceUrl) {
+        this.restTemplate = restTemplate;
+        this.authServiceUrl = authServiceUrl;
+    }
+
+    public boolean validateToken(String token) {
+        try {
+            restTemplate.postForEntity(
+                authServiceUrl + "/api/auth/check-auth",
+                token,
+                Void.class
+            );
+            return true;
+        } catch (HttpClientErrorException e) {
+            if (e.getStatusCode() == HttpStatus.UNAUTHORIZED) {
+                return false;
+            }
+            throw e;
+        }
+    }
+}
+```
 
 ## Security Best Practices
 - Use HTTPS in production.
 - Configure JWT secrets and expiration in environment variables.
 - Enable CORS as needed for your frontend(s).
 - Use strong password policies and breach checks.
+
+## Token-Based Authentication
+This service implements stateless JWT-based authentication with the following characteristics:
+
+- **Access Tokens:** Short-lived (default 1 hour) tokens for API access
+- **Refresh Tokens:** Longer-lived tokens (default 24 hours) to obtain new access tokens
+- **Stateless Validation:** Tokens can be validated without database lookups
+- **Token Structure:** JWT tokens with standardized claims:
+  - `sub`: User ID
+  - `typ`: Token type (access or refresh)
+  - `username`: User's username
+  - `roles`: User's authorization roles
+  - Standard JWT claims (`iat`, `exp`)
+
+For logout functionality in this stateless model, clients should:
+1. Remove tokens from local storage
+2. Use short-lived access tokens to minimize risk
 
 ## Testing
 - Unit and integration tests are provided using JUnit and Testcontainers.

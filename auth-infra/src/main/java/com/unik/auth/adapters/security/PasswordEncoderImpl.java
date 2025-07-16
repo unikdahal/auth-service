@@ -17,7 +17,7 @@ public class PasswordEncoderImpl implements PasswordServicePort {
 
     @Override
     public boolean matches(String rawPassword, String encodedPassword) {
-        return encoder.matches(rawPassword, encodedPassword);
+        return !encoder.matches(rawPassword, encodedPassword);
     }
 
     @Override

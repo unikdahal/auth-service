@@ -1,6 +1,7 @@
 package com.unik.auth.ports.output;
 
 import com.unik.auth.domain.entities.BaseUser;
+import io.jsonwebtoken.Claims;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -82,9 +83,9 @@ public interface TokenServicePort<U extends BaseUser<R>, R> {
     /**
      * Extracts all claims from the token.
      * @param token the token string
-     * @return an Optional containing a map of all claims
+     * @return the claims extracted from the token
      */
-    Optional<Map<String, Object>> extractAllClaims(String token);
+    Claims extractAllClaims(String token);
 
     /**
      * Extracts a specific claim from the token.
@@ -100,13 +101,6 @@ public interface TokenServicePort<U extends BaseUser<R>, R> {
      * @return an Optional containing a set of roles
      */
     Optional<Set<R>> extractRoles(String token);
-
-    /**
-     * Checks if the token is expired.
-     * @param token the token string
-     * @return true if expired, false otherwise
-     */
-    boolean isTokenExpired(String token);
 
     /**
      * Gets the expiration time of the token.
@@ -130,25 +124,6 @@ public interface TokenServicePort<U extends BaseUser<R>, R> {
     Optional<String> refreshAccessToken(String refreshToken);
 
     /**
-     * Revokes a refresh token, making it unusable.
-     * @param refreshToken the refresh token to revoke
-     */
-    void revokeRefreshToken(String refreshToken);
-
-    /**
-     * Checks if a refresh token has been revoked.
-     * @param refreshToken the refresh token
-     * @return true if revoked, false otherwise
-     */
-    boolean isRefreshTokenRevoked(String refreshToken);
-
-    /**
-     * Revokes all tokens for a user by user ID.
-     * @param userId the user ID
-     */
-    void revokeAllTokensForUser(String userId);
-
-    /**
      * Gets the type of the token (e.g., "Bearer").
      * @return the token type
      */
@@ -161,10 +136,4 @@ public interface TokenServicePort<U extends BaseUser<R>, R> {
      */
     boolean isTokenSignatureValid(String token);
 
-    /**
-     * Extracts token metadata (e.g., issuer, audience, etc.).
-     * @param token the token string
-     * @return an Optional containing a map of token metadata
-     */
-    Optional<Map<String, Object>> extractTokenMetadata(String token);
 }
